@@ -4,23 +4,25 @@ const postSchema = new Schema({
   body: String,
   username: String,
   createdAt: String,
-  categories: [
-    {
-      body: String,
-    },
-  ],
+  categories: [String],
   comments: [
     {
       body: String,
-      username: String,
       createdAt: String,
+      author: {
+        type: Schema.Types.ObjectId,
+        ref: "users",
+      },
     },
   ],
   answers: [
     {
       body: String,
-      username: String,
       createdAt: String,
+      author: {
+        type: Schema.Types.ObjectId,
+        ref: "users",
+      },
     },
   ],
   votes: [
@@ -38,6 +40,10 @@ const postSchema = new Schema({
   author: {
     type: Schema.Types.ObjectId,
     ref: "users",
+  },
+  status: {
+    type: String,
+    default: "Not approved",
   },
 });
 

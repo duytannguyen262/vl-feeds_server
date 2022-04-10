@@ -5,7 +5,15 @@ const userSchema = new Schema({
   password: String,
   createdAt: String,
   email: String,
+  avatar: { type: String, default: "" },
+  banner: { type: String, default: "" },
   role: { type: String, default: "student" },
+  followedPosts: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "posts",
+    },
+  ],
 });
 
 module.exports = model("User", userSchema);

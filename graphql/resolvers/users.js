@@ -7,23 +7,78 @@ const {
   validateLoginInput,
 } = require("../../util/validators");
 const { SECRET_KEY } = require("../../config");
+const Post = require("../../models/Post");
 const User = require("../../models/User");
+const checkAuth = require("../../util/checkAuth");
 
 function generateToken(user) {
   return jwt.sign(
     {
-      id: user.id,
+      id: user._id,
       email: user.email,
       username: user.username,
     },
     SECRET_KEY,
     {
-      expiresIn: "1h",
+      expiresIn: "24h",
     }
   );
 }
 
 module.exports = {
+  Query: {
+    async getUsers() {
+      try {
+        const users = await User.find().sort({ createdAt: -1 });
+        return users;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    async getUser(_, { userId }) {
+      try {
+        const user = await User.findById(userId);
+        return user;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    async getUserFollowedPosts(_, __, context) {
+      const { id } = checkAuth(context);
+      try {
+        const user = await User.findById(id);
+        const followedPosts = user.followedPosts.map((postId) => {
+          return Post.findById(postId);
+        });
+        return followedPosts;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+  },
+
+  User: {
+    followedPosts: async (parents) => {
+      try {
+        const followedPosts = await Promise.all(
+          parents.followedPosts.map((postId) => {
+            return Post.findById(postId);
+          })
+        );
+
+        await Promise.all(
+          followedPosts.map(async (post) => {
+            const author = await User.findById(post.author);
+            return { ...post, author };
+          })
+        );
+        return followedPosts;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+  },
+
   Mutation: {
     async register(
       _,
@@ -46,9 +101,19 @@ module.exports = {
       //Make sure user doesn't already exist
       const user = await User.findOne({ username });
       if (user) {
-        throw new UserInputError("Username already exists", {
+        throw new UserInputError("Tên đăng nhập đã tồn tại", {
           errors: {
-            username: "Username already exists",
+            username: "Tên đăng nhập đã tồn tại",
+          },
+        });
+      }
+
+      //Make sure email doesn't already exist
+      const usedEmailUser = await User.findOne({ email });
+      if (usedEmailUser) {
+        throw new UserInputError("Email đã được sử dụng", {
+          errors: {
+            email: "Email đã được sử dụng",
           },
         });
       }
@@ -73,6 +138,7 @@ module.exports = {
         token,
       };
     },
+
     async login(_, { username, password }) {
       const { errors, valid } = validateLoginInput(username, password);
 
@@ -95,11 +161,23 @@ module.exports = {
       }
 
       const token = generateToken(user);
-
       return {
         ...user._doc,
-        id: user.id,
+        id: user._id,
         token,
+        avatar: user.avatar,
+        role: user.role,
+      };
+    },
+
+    async uploadAvatar(parent, { file }) {
+      const { createReadStream, filename, mimetype, encoding } = await file;
+      const stream = createReadStream();
+      const pathName = path.join(__dirname, `/public/images/${filename}`);
+      await stream.pipe(fs.createWriteStream(pathName));
+
+      return {
+        url: `http://localhost:5000/images/${filename}`,
       };
     },
   },

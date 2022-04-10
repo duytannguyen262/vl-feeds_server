@@ -6,6 +6,8 @@ module.exports = gql`
     body: String!
     createdAt: String!
     username: String!
+    author: User!
+    userAvatar: String!
     comments: [Comment]!
     commentCount: Int!
     answers: [Answer]!
@@ -13,24 +15,22 @@ module.exports = gql`
     votesCount: Int!
     devotes: [Devote]!
     devotesCount: Int!
-    reputationCount: Int!
-    categories: [Category]!
+    reputationsCount: Int!
+    categories: [String!]
+    status: String!
   }
-  type Category {
-    id: ID!
-    body: String!
-  }
+
   type Comment {
     id: ID!
     createdAt: String!
-    username: String!
     body: String!
+    author: User!
   }
   type Answer {
     id: ID!
     createdAt: String!
-    username: String!
     body: String!
+    author: User!
   }
 
   type Vote {
@@ -49,11 +49,14 @@ module.exports = gql`
     token: String!
     username: String!
     createdAt: String!
+    avatar: String!
+    banner: String!
+    role: String!
+    followedPosts: [Post!]
   }
 
-  type Query {
-    getPosts: [Post]
-    getPost(postId: ID!): Post
+  type File {
+    url: String!
   }
 
   input RegisterInput {
@@ -63,20 +66,27 @@ module.exports = gql`
     email: String!
   }
 
+  # ROOT TYPE
+  type Query {
+    getUsers: [User]
+    getUser(userId: ID!): User
+    getUserFollowedPosts: [Post]
+    getPosts: [Post]
+    getPost(postId: ID!): Post
+  }
+
   type Mutation {
     register(registerInput: RegisterInput): User!
     login(username: String!, password: String!): User!
-    createPost(body: String!): Post!
+    uploadAvatar(uploadAvatarInput: String): User!
+    createPost(body: String!, categories: [String!]): Post!
     deletePost(postId: ID!): String!
-    createComment(postId: String!, body: String!): Post!
+    createComment(postId: ID!, body: String!): Post!
     deleteComment(postId: ID!, commentId: ID!): Post!
-    createAnswer(postId: String!, body: String!): Post!
+    createAnswer(postId: ID!, body: String!): Post!
     deleteAnswer(postId: ID!, answerId: ID!): Post!
     votePost(postId: ID!): Post!
     devotePost(postId: ID!): Post!
-  }
-
-  type Subscription {
-    newPost: Post!
+    followPost(postId: ID!): Post!
   }
 `;
