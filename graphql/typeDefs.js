@@ -55,6 +55,8 @@ module.exports = gql`
     followedPosts: [Post!]
   }
 
+  scalar Upload
+
   type File {
     url: String!
   }
@@ -73,12 +75,14 @@ module.exports = gql`
     getUserFollowedPosts: [Post]
     getPosts: [Post]
     getPost(postId: ID!): Post
+    uploads: String!
   }
 
   type Mutation {
     register(registerInput: RegisterInput): User!
     login(username: String!, password: String!): User!
-    uploadAvatar(uploadAvatarInput: String): User!
+    updateUser(avatar: String, password: String): User!
+    singleUpload(file: Upload!): File!
     createPost(body: String!, categories: [String!]): Post!
     deletePost(postId: ID!): String!
     createComment(postId: ID!, body: String!): Post!

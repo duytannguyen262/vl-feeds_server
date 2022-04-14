@@ -1,7 +1,12 @@
+const path = require("path");
+const fs = require("fs");
+const { GraphQLUpload } = require("graphql-upload");
+
 const postsResolvers = require("./posts");
 const usersResolvers = require("./users");
 const commentsResolvers = require("./comments");
 const answersResolvers = require("./answers");
+const uploadResolvers = require("./upload");
 
 module.exports = {
   Query: {
@@ -18,10 +23,12 @@ module.exports = {
     ...commentsResolvers.Comment,
   },
   Answer: { ...answersResolvers.Answer },
+  Upload: GraphQLUpload,
   Mutation: {
     ...usersResolvers.Mutation,
     ...postsResolvers.Mutation,
     ...commentsResolvers.Mutation,
     ...answersResolvers.Mutation,
+    ...uploadResolvers.Mutation,
   },
 };

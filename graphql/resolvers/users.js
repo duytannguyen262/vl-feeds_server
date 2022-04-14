@@ -38,6 +38,7 @@ module.exports = {
     async getUser(_, { userId }) {
       try {
         const user = await User.findById(userId);
+        console.log(user);
         return user;
       } catch (err) {
         throw new Error(err);
@@ -170,15 +171,18 @@ module.exports = {
       };
     },
 
-    async uploadAvatar(parent, { file }) {
-      const { createReadStream, filename, mimetype, encoding } = await file;
-      const stream = createReadStream();
-      const pathName = path.join(__dirname, `/public/images/${filename}`);
-      await stream.pipe(fs.createWriteStream(pathName));
-
-      return {
-        url: `http://localhost:5000/images/${filename}`,
-      };
+    async updateUser(_, { avatar, password }, context) {
+      const { id } = checkAuth(context);
+      try {
+        const user = await User.findById(id);
+        return {
+          ...user._doc,
+          avatar,
+          password,
+        };
+      } catch (err) {
+        throw new Error(err);
+      }
     },
   },
 };
