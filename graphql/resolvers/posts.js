@@ -15,7 +15,38 @@ module.exports = {
         throw new Error(err);
       }
     },
+    async posts(_, { first, after }) {
+      let afterIndex = 0;
 
+      const posts = await Post.find().sort({ createdAt: -1 });
+      if (after) {
+        let nodeIndex = posts.findIndex((datum) => datum.id === after);
+        if (nodeIndex >= 0) {
+          afterIndex = nodeIndex + 1;
+        }
+      }
+      const slicedData = posts.slice(afterIndex, afterIndex + first);
+      const edges = slicedData.map((node) => ({
+        node,
+        cursor: node.id,
+      }));
+
+      let startCursor = null;
+
+      if (edges.length > 0) {
+        startCursor = edges[edges.length - 1].node.id;
+      }
+
+      let hasNextPage = posts.length > afterIndex + first;
+      return {
+        totalCount: posts.length,
+        edges,
+        pageInfo: {
+          startCursor,
+          hasNextPage,
+        },
+      };
+    },
     async getPost(_, { postId }) {
       try {
         const post = await Post.findById(postId);

@@ -1,5 +1,3 @@
-const path = require("path");
-const fs = require("fs");
 const { GraphQLUpload } = require("graphql-upload");
 
 const postsResolvers = require("./posts");

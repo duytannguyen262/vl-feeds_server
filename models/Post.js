@@ -41,10 +41,6 @@ const postSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "users",
   },
-  status: {
-    type: String,
-    default: "Not approved",
-  },
 });
 
 module.exports = model("Post", postSchema);

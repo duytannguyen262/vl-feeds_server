@@ -38,7 +38,6 @@ module.exports = {
     async getUser(_, { userId }) {
       try {
         const user = await User.findById(userId);
-        console.log(user);
         return user;
       } catch (err) {
         throw new Error(err);
@@ -161,6 +160,10 @@ module.exports = {
         throw new UserInputError("Sai mật khẩu", { errors });
       }
 
+      if (user.role === "banned") {
+        errors.general = "Tài khoản của bạn đã bị cấm";
+        throw new UserInputError("Tài khoản của bạn đã bị cấm", { errors });
+      }
       const token = generateToken(user);
       return {
         ...user._doc,
@@ -171,18 +174,66 @@ module.exports = {
       };
     },
 
-    async updateUser(_, { avatar, password }, context) {
+    async changePassword(
+      _,
+      { password, newPassword, confirmNewPassword },
+      context
+    ) {
       const { id } = checkAuth(context);
+      const user = await User.findById(id);
+
       try {
-        const user = await User.findById(id);
+        const match = await bcrypt.compare(password, user.password);
+
+        if (!match) {
+          throw new UserInputError("Sai mật khẩu");
+        }
+
+        if (newPassword !== confirmNewPassword) {
+          throw new UserInputError("Mật khẩu không khớp");
+        }
+
+        const newMatchOld = await bcrypt.compare(newPassword, user.password);
+        if (newMatchOld) {
+          throw new UserInputError(
+            "Mật khẩu mới không được trùng với mật khẩu cũ"
+          );
+        }
+
+        const newHashedPassword = await bcrypt.hash(newPassword, 12);
+
+        user.password = newHashedPassword;
+
+        await user.save();
         return {
-          ...user._doc,
-          avatar,
-          password,
+          message: "Thay đổi mật khẩu thành công!",
         };
       } catch (err) {
         throw new Error(err);
       }
+    },
+
+    async deleteUsers(_, { ids }) {
+      ids.map(async (id) => {
+        await User.findByIdAndDelete(id);
+      });
+
+      return {
+        message: "Xóa thành công",
+      };
+    },
+
+    async changeUsersRole(_, { users }) {
+      users.map(async (user) => {
+        const { id, role } = user;
+        const foundUser = await User.findById(id);
+        foundUser.role = role;
+        await foundUser.save();
+      });
+
+      return {
+        message: "Thay đổi quyền thành công",
+      };
     },
   },
 };

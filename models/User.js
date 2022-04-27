@@ -6,7 +6,6 @@ const userSchema = new Schema({
   createdAt: String,
   email: String,
   avatar: { type: String, default: "" },
-  banner: { type: String, default: "" },
   role: { type: String, default: "student" },
   followedPosts: [
     {

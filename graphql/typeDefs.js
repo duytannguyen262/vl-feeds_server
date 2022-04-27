@@ -20,6 +20,22 @@ module.exports = gql`
     status: String!
   }
 
+  type Edge {
+    node: Post!
+    cursor: String!
+  }
+
+  type PageInfo {
+    hasNextPage: Boolean!
+    startCursor: String!
+  }
+
+  type PostsResult {
+    totalCount: String
+    edges: [Edge]
+    pageInfo: PageInfo
+  }
+
   type Comment {
     id: ID!
     createdAt: String!
@@ -61,11 +77,21 @@ module.exports = gql`
     url: String!
   }
 
+  type Message {
+    message: String!
+  }
+
   input RegisterInput {
     username: String!
     password: String!
     confirmPassword: String!
     email: String!
+  }
+
+  input UsersWithRoles {
+    id: String!
+    username: String!
+    role: String!
   }
 
   # ROOT TYPE
@@ -74,6 +100,7 @@ module.exports = gql`
     getUser(userId: ID!): User
     getUserFollowedPosts: [Post]
     getPosts: [Post]
+    posts(first: Int, after: String): PostsResult
     getPost(postId: ID!): Post
     uploads: String!
   }
@@ -81,8 +108,15 @@ module.exports = gql`
   type Mutation {
     register(registerInput: RegisterInput): User!
     login(username: String!, password: String!): User!
-    updateUser(avatar: String, password: String): User!
+    changePassword(
+      password: String!
+      newPassword: String!
+      confirmNewPassword: String!
+    ): Message!
     singleUpload(file: Upload!): File!
+    uploadFileToDtb(file: Upload!): File!
+    deleteUsers(ids: [String!]!): Message!
+    changeUsersRole(users: [UsersWithRoles!]!): Message!
     createPost(body: String!, categories: [String!]): Post!
     deletePost(postId: ID!): String!
     createComment(postId: ID!, body: String!): Post!

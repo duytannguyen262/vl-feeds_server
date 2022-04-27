@@ -1,3 +1,8 @@
+const bcrypt = require("bcrypt");
+
+const User = require("../models/User");
+const checkAuth = require("./checkAuth");
+
 module.exports.validateRegisterInput = (
   username,
   email,

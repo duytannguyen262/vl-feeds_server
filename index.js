@@ -6,9 +6,14 @@ const cors = require("cors");
 
 const typeDefs = require("./graphql/typeDefs");
 const resolvers = require("./graphql/resolvers");
-const { MONGODB, PORT } = require("./config");
+const { MONGODB } = require("./config");
+
+const PORT = process.env.PORT || 5000;
 
 const app = express();
+app.use(graphqlUploadExpress());
+app.use(express.static("public"));
+app.use(cors());
 //GraphQL---------------------------------------------------
 const server = new ApolloServer({
   typeDefs,
@@ -28,20 +33,15 @@ const connectDB = async () => {
         console.log("MongoDB Connected...");
         await server.start();
 
-        app.use(graphqlUploadExpress());
-        app.use(express.static("public"));
-        app.use(cors());
         server.applyMiddleware({ app });
 
         await new Promise((r) => {
-          console.log(
-            `Server started on port http://localhost:${PORT}/graphql`
-          );
+          console.log(`Server started on port ${process.env.URL}/graphql`);
           return app.listen({ port: PORT });
         });
       });
   } catch (error) {
-    console.error(error.message);
+    throw new Error(error);
   }
 };
 connectDB();
