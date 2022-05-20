@@ -188,6 +188,9 @@ module.exports = {
     async devotePost(_, { postId }, context) {
       const { username } = checkAuth(context);
       const post = await Post.findById(postId);
+      if (post.devotes.length >= 999) {
+        throw new Error("Bài viết đã được downvote quá 1000 lần");
+      }
       if (post) {
         if (post.devotes.find((devote) => devote.username === username)) {
           //Post already devoted, remove devote
