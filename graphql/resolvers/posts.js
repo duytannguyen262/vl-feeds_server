@@ -1,5 +1,6 @@
 const { AuthenticationError } = require("apollo-server");
 const ObjectId = require("mongodb").ObjectId;
+const cloudinary = require("cloudinary").v2;
 
 const Post = require("../../models/Post");
 const User = require("../../models/User");
@@ -7,51 +8,81 @@ const checkAuth = require("../../util/checkAuth");
 
 module.exports = {
   Query: {
-    async getPosts() {
-      try {
-        const posts = await Post.find().sort({ createdAt: -1 });
-        return posts;
-      } catch (err) {
-        throw new Error(err);
-      }
-    },
-    async posts(_, { first, after }) {
+    async posts(_, { limit, after }) {
       let afterIndex = 0;
 
       const posts = await Post.find().sort({ createdAt: -1 });
-      if (after) {
-        let nodeIndex = posts.findIndex((datum) => datum.id === after);
-        if (nodeIndex >= 0) {
-          afterIndex = nodeIndex + 1;
+      if (posts.length > 0) {
+        if (after) {
+          let nodeIndex = posts.findIndex((datum) => datum.id === after);
+          if (nodeIndex >= 0) {
+            afterIndex = nodeIndex + 1;
+          }
         }
+        const slicedData = posts.slice(afterIndex, afterIndex + limit);
+        const edges = slicedData.map((node) => ({
+          node,
+          cursor: node.id,
+        }));
+
+        let startCursor = null;
+
+        if (edges.length > 0) {
+          startCursor = edges[edges.length - 1].node.id;
+        }
+        let hasNextPage = posts.length > afterIndex + limit;
+        return {
+          totalCount: posts.length,
+          edges,
+          pageInfo: {
+            startCursor,
+            hasNextPage,
+          },
+        };
+      } else {
+        return {
+          totalCount: 0,
+          edges: [],
+          pageInfo: {
+            startCursor: null,
+            hasNextPage: false,
+          },
+        };
       }
-      const slicedData = posts.slice(afterIndex, afterIndex + first);
-      const edges = slicedData.map((node) => ({
-        node,
-        cursor: node.id,
-      }));
-
-      let startCursor = null;
-
-      if (edges.length > 0) {
-        startCursor = edges[edges.length - 1].node.id;
-      }
-
-      let hasNextPage = posts.length > afterIndex + first;
-      return {
-        totalCount: posts.length,
-        edges,
-        pageInfo: {
-          startCursor,
-          hasNextPage,
-        },
-      };
     },
     async getPost(_, { postId }) {
       try {
         const post = await Post.findById(postId);
         if (post) {
           return post;
+        } else {
+          throw new Error("Không tìm thấy bài viết");
+        }
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    async getUserPosts(parent, { userId }) {
+      try {
+        const posts = await Post.find({ author: userId }).sort({
+          createdAt: -1,
+        });
+        if (posts) {
+          return posts;
+        } else {
+          throw new Error("Không tìm thấy bài viết");
+        }
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    async getFollowedUsersPosts(parent, { userIds }) {
+      try {
+        const posts = await Post.find({ author: { $in: userIds } }).sort({
+          createdAt: -1,
+        });
+        if (posts) {
+          return posts;
         } else {
           throw new Error("Không tìm thấy bài viết");
         }
@@ -80,11 +111,10 @@ module.exports = {
   },
 
   Mutation: {
-    async createPost(_, { body, categories }, context) {
+    async createPost(_, { body, categories, pictures }, context) {
       const user = checkAuth(context);
       const { id } = user;
       const foundUser = await User.findById(id);
-
       if (body.trim() === "") {
         throw new Error("Post body không được để trống");
       }
@@ -92,6 +122,7 @@ module.exports = {
         id,
         body,
         categories,
+        pictures,
         author: foundUser,
         createdAt: new Date().toISOString(),
       });
@@ -102,13 +133,20 @@ module.exports = {
     },
 
     async deletePost(_, { postId }, context) {
-      const user = checkAuth(context);
-
+      const { id } = checkAuth(context);
+      const user = await User.findById(id);
       try {
         const post = await Post.findById(postId);
+        const postImageIds = post.pictures.map((picture) => picture.public_id);
         const author = await User.findById(post.author);
-
-        if (user.id === author.id) {
+        if (id === author.id || user.role === "admin") {
+          if (postImageIds.length > 0) {
+            cloudinary.api.delete_resources(postImageIds, (error) => {
+              if (error) {
+                throw new Error(error);
+              }
+            });
+          }
           await post.delete();
           return "Xóa bài viết thành công";
         } else {
@@ -123,6 +161,9 @@ module.exports = {
       const { username } = checkAuth(context);
       const post = await Post.findById(postId);
       if (post) {
+        if (post.votes.length >= 999) {
+          throw new Error("Bài viết đã được vote quá 1000 lần");
+        }
         if (post.votes.find((vote) => vote.username === username)) {
           //Post already voted, remove vote
           post.votes = post.votes.filter((vote) => vote.username !== username);

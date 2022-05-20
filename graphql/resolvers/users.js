@@ -10,8 +10,10 @@ const { SECRET_KEY } = require("../../config");
 const Post = require("../../models/Post");
 const User = require("../../models/User");
 const checkAuth = require("../../util/checkAuth");
+const { sendEmail } = require("../../util/sendEmail");
+const createConfirmationUrl = require("../../util/createConfirmationUrl");
 
-function generateToken(user) {
+function generateToken(user, expiresIn) {
   return jwt.sign(
     {
       id: user._id,
@@ -20,17 +22,22 @@ function generateToken(user) {
     },
     SECRET_KEY,
     {
-      expiresIn: "24h",
+      expiresIn,
     }
   );
 }
 
 module.exports = {
   Query: {
-    async getUsers() {
+    async getUsers(_, { userIds }) {
       try {
-        const users = await User.find().sort({ createdAt: -1 });
-        return users;
+        if (userIds) {
+          const users = await User.find({ _id: { $in: userIds } });
+          return users;
+        } else {
+          const users = await User.find().sort({ createdAt: -1 });
+          return users;
+        }
       } catch (err) {
         throw new Error(err);
       }
@@ -73,6 +80,35 @@ module.exports = {
           })
         );
         return followedPosts;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    followings: async (parent) => {
+      try {
+        const followings = [];
+        await Promise.all(
+          parent.followings.map(async (userId) => {
+            const user = await User.findById(userId);
+            if (user) {
+              followings.push(user);
+            }
+          })
+        );
+        console.log(followings);
+        return followings;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    followers: async (parent) => {
+      try {
+        const followers = await Promise.all(
+          parent.followers.map((userId) => {
+            return User.findById(userId);
+          })
+        );
+        return followers;
       } catch (err) {
         throw new Error(err);
       }
@@ -130,7 +166,9 @@ module.exports = {
 
       const result = await newUser.save();
 
-      const token = generateToken(result);
+      const token = generateToken(result, "1h");
+
+      await sendEmail(result.email, createConfirmationUrl(token));
 
       return {
         ...result._doc,
@@ -164,14 +202,39 @@ module.exports = {
         errors.general = "Tài khoản của bạn đã bị cấm";
         throw new UserInputError("Tài khoản của bạn đã bị cấm", { errors });
       }
-      const token = generateToken(user);
+
+      if (!user.confirmed) {
+        errors.general = "Tài khoản của bạn chưa được xác nhận";
+        throw new UserInputError("Tài khoản của bạn chưa được xác nhận", {
+          errors,
+        });
+      }
+      const token = generateToken(user, "7d");
       return {
         ...user._doc,
         id: user._id,
         token,
-        avatar: user.avatar,
         role: user.role,
       };
+    },
+
+    async confirmUser(_, { token }) {
+      try {
+        const { id } = jwt.verify(token, SECRET_KEY);
+        const user = await User.findById(id);
+        if (!user) {
+          return {
+            message: "Không tìm thấy tài khoản",
+          };
+        }
+        user.confirmed = true;
+        await user.save();
+        return {
+          message: "Xác nhận tài khoản thành công",
+        };
+      } catch (err) {
+        throw new Error(err);
+      }
     },
 
     async changePassword(
@@ -234,6 +297,40 @@ module.exports = {
       return {
         message: "Thay đổi quyền thành công",
       };
+    },
+
+    async followUser(_, { userId }, context) {
+      const { id } = checkAuth(context);
+      const user = await User.findById(id);
+      const userToFollow = await User.findById(userId);
+
+      if (!user || !userToFollow) {
+        throw new UserInputError("Không tìm thấy người dùng");
+      }
+
+      if (userToFollow) {
+        if (
+          user.followings.find(
+            (userId) => userId.toString() === userToFollow.id
+          )
+        ) {
+          user.followings = user.followings.filter((userId) => {
+            return userId.toString() !== userToFollow.id;
+          });
+          await user.save();
+          userToFollow.followers = userToFollow.followers.filter((userId) => {
+            return userId.toString() !== user.id;
+          });
+          await userToFollow.save();
+        } else {
+          user.followings.push(userToFollow);
+          await user.save();
+          userToFollow.followers.push(user);
+          await userToFollow.save();
+        }
+
+        return userToFollow;
+      }
     },
   },
 };

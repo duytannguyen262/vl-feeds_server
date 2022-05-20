@@ -18,6 +18,12 @@ module.exports = gql`
     reputationsCount: Int!
     categories: [String!]
     status: String!
+    pictures: [Picture]
+  }
+
+  type Picture {
+    url: String!
+    public_id: String!
   }
 
   type Edge {
@@ -64,18 +70,17 @@ module.exports = gql`
     email: String!
     token: String!
     username: String!
+    displayName: String!
     createdAt: String!
-    avatar: String!
-    banner: String!
+    avatar: Picture
+    banner: Picture
     role: String!
     followedPosts: [Post!]
+    followings: [User!]
+    followers: [User!]
   }
 
   scalar Upload
-
-  type File {
-    url: String!
-  }
 
   type Message {
     message: String!
@@ -94,30 +99,40 @@ module.exports = gql`
     role: String!
   }
 
+  input ImageInputs {
+    url: String!
+    public_id: String!
+  }
+
   # ROOT TYPE
   type Query {
-    getUsers: [User]
+    getUsers(userIds: [String!]): [User]
     getUser(userId: ID!): User
     getUserFollowedPosts: [Post]
-    getPosts: [Post]
-    posts(first: Int, after: String): PostsResult
+    getFollowedUsersPosts(userIds: [String!]): [Post]
+    posts(limit: Int, after: String): PostsResult
     getPost(postId: ID!): Post
+    getUserPosts(userId: String!): [Post]
     uploads: String!
   }
 
   type Mutation {
     register(registerInput: RegisterInput): User!
     login(username: String!, password: String!): User!
+    confirmUser(token: String!): Message!
     changePassword(
       password: String!
       newPassword: String!
       confirmNewPassword: String!
     ): Message!
-    singleUpload(file: Upload!): File!
-    uploadFileToDtb(file: Upload!): File!
+    uploadUserImg(avatar: ImageInputs, banner: ImageInputs): User!
     deleteUsers(ids: [String!]!): Message!
     changeUsersRole(users: [UsersWithRoles!]!): Message!
-    createPost(body: String!, categories: [String!]): Post!
+    createPost(
+      body: String!
+      categories: [String!]
+      pictures: [ImageInputs!]
+    ): Post!
     deletePost(postId: ID!): String!
     createComment(postId: ID!, body: String!): Post!
     deleteComment(postId: ID!, commentId: ID!): Post!
@@ -126,5 +141,6 @@ module.exports = gql`
     votePost(postId: ID!): Post!
     devotePost(postId: ID!): Post!
     followPost(postId: ID!): Post!
+    followUser(userId: String!): User!
   }
 `;

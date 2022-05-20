@@ -3,6 +3,7 @@ const { ApolloServer } = require("apollo-server-express");
 const { graphqlUploadExpress } = require("graphql-upload");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const cloudinary = require("cloudinary").v2;
 
 const typeDefs = require("./graphql/typeDefs");
 const resolvers = require("./graphql/resolvers");
@@ -13,7 +14,16 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 app.use(graphqlUploadExpress());
 app.use(express.static("public"));
+app.use(express.json({ limit: "50mb" }));
 app.use(cors());
+
+//Cloudinary----------------------------------------------------
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+});
+
 //GraphQL---------------------------------------------------
 const server = new ApolloServer({
   typeDefs,
@@ -39,6 +49,9 @@ const connectDB = async () => {
           console.log(`Server started on port ${process.env.URL}/graphql`);
           return app.listen({ port: PORT });
         });
+      })
+      .catch((err) => {
+        console.log(err);
       });
   } catch (error) {
     throw new Error(error);

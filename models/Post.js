@@ -5,6 +5,12 @@ const postSchema = new Schema({
   username: String,
   createdAt: String,
   categories: [String],
+  pictures: [
+    {
+      url: String,
+      public_id: String,
+    },
+  ],
   comments: [
     {
       body: String,
