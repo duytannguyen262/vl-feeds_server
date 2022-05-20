@@ -95,7 +95,6 @@ module.exports = {
             }
           })
         );
-        console.log(followings);
         return followings;
       } catch (err) {
         throw new Error(err);
