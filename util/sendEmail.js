@@ -18,14 +18,7 @@ module.exports.sendEmail = async (email, url) => {
     subject: "Xác thực email Vanlang Feeds ✔",
     html: `
         <h4>Chọn vào nút dưới đây để xác thực email nhé:</h4>
-        <a style="
-            border: none; 
-            background-color: #0001ff; 
-            padding: 0 16px;
-            color: white;
-            font-weight: bold;
-            text-decoration: none;
-        "href="${url}">Xác thực ngay</a>
+        <a href="${url}">${url}</a>
     `,
   });
 
