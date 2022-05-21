@@ -7,7 +7,6 @@ module.exports = gql`
     createdAt: String!
     username: String!
     author: User!
-    userAvatar: String!
     comments: [Comment]!
     commentCount: Int!
     answers: [Answer]!
@@ -17,7 +16,6 @@ module.exports = gql`
     devotesCount: Int!
     reputationsCount: Int!
     categories: [String!]
-    status: String!
     pictures: [Picture]
   }
 
