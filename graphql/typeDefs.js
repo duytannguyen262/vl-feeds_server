@@ -6,7 +6,7 @@ module.exports = gql`
     body: String!
     createdAt: String!
     username: String!
-    author: User!
+    author: User
     comments: [Comment]!
     commentCount: Int!
     answers: [Answer]!
@@ -17,6 +17,13 @@ module.exports = gql`
     reputationsCount: Int!
     categories: [String!]
     pictures: [Picture]
+    points: [Point]
+  }
+
+  type Point {
+    username: String!
+    createdAt: String!
+    point: Float!
   }
 
   type Picture {
@@ -44,13 +51,13 @@ module.exports = gql`
     id: ID!
     createdAt: String!
     body: String!
-    author: User!
+    author: User
   }
   type Answer {
     id: ID!
     createdAt: String!
     body: String!
-    author: User!
+    author: User
   }
 
   type Vote {
@@ -75,7 +82,7 @@ module.exports = gql`
     role: String!
     followedPosts: [Post!]
     followings: [User!]
-    followers: [User!]
+    followers: [User]
   }
 
   scalar Upload
@@ -139,6 +146,7 @@ module.exports = gql`
     votePost(postId: ID!): Post!
     devotePost(postId: ID!): Post!
     followPost(postId: ID!): Post!
+    pointPost(postId: ID!, point: Float): Post!
     followUser(userId: String!): User!
   }
 `;

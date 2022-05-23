@@ -47,6 +47,13 @@ const postSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "users",
   },
+  points: [
+    {
+      username: String,
+      createdAt: String,
+      point: Number,
+    },
+  ],
 });
 
 module.exports = model("Post", postSchema);

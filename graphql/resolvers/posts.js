@@ -100,10 +100,14 @@ module.exports = {
       return parent.votes.length - parent.devotes.length;
     },
 
-    async author(parent, args, context) {
+    async author(parent, args) {
       try {
         const user = await User.findById(parent.author);
-        return user;
+        if (user) {
+          return user;
+        } else {
+          return null;
+        }
       } catch (err) {
         throw new Error(err);
       }
@@ -240,6 +244,32 @@ module.exports = {
       }
 
       return user;
+    },
+
+    async pointPost(_, { postId, point }, context) {
+      const { id } = checkAuth(context);
+      const user = await User.findById(id);
+      const post = await Post.findById(postId);
+      if (post) {
+        if (post.points.find((point) => point.username === user.username)) {
+          //Post already point, add new point
+          const found = post.points.find(
+            (point) => point.username === user.username
+          );
+          found.point = point;
+          found.createdAt = new Date().toISOString();
+          await post.save();
+        } else {
+          //Not point, point post
+          post.points.push({
+            username: user.username,
+            createdAt: new Date().toISOString(),
+            point,
+          });
+          await post.save();
+        }
+        return post;
+      } else throw new UserInputError("Không tìm thấy bài viết");
     },
   },
 };
