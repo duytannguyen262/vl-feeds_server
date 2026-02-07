@@ -8,9 +8,8 @@ const checkAuth = require("../../util/checkAuth");
 
 module.exports = {
   Query: {
-    async posts(_, { limit, after }) {
+    async posts(_, { limit, after }, context) {
       let afterIndex = 0;
-
       const posts = await Post.find().sort({ createdAt: -1 });
       if (posts.length > 0) {
         if (after) {
@@ -21,7 +20,7 @@ module.exports = {
         }
         const slicedData = posts.slice(afterIndex, afterIndex + limit);
         const edges = slicedData.map((node) => ({
-          node,
+          node: { ...node._doc, id: node._id, author: node.isAnonymous ? null : node.author },
           cursor: node.id,
         }));
 
@@ -62,13 +61,21 @@ module.exports = {
         throw new Error(err);
       }
     },
-    async getUserPosts(parent, { userId }) {
+    async getUserPosts(parent, { userId }, context) {
       try {
-        const posts = await Post.find({ author: userId }).sort({
+        const { id } = checkAuth(context);
+
+        const findMethod = id === userId ? {} : { isAnonymous: false };
+
+        const posts = await Post.find({ author: userId, ...findMethod }).sort({
           createdAt: -1,
         });
         if (posts) {
-          return posts;
+          return posts.map((post) => ({
+            ...post._doc,
+            id: post._id,
+            author: post.isAnonymous ? null : post.author,
+          }));
         } else {
           throw new Error("Không tìm thấy bài viết");
         }
@@ -82,7 +89,11 @@ module.exports = {
           createdAt: -1,
         });
         if (posts) {
-          return posts;
+          return posts.map((post) => ({
+            ...post._doc,
+            id: post._id,
+            author: post.isAnonymous ? null : post.author,
+          }));
         } else {
           throw new Error("Không tìm thấy bài viết");
         }
@@ -100,7 +111,7 @@ module.exports = {
       return parent.votes.length - parent.devotes.length;
     },
 
-    async author(parent, args) {
+    async author(parent) {
       try {
         const user = await User.findById(parent.author);
         if (user) {
@@ -115,7 +126,7 @@ module.exports = {
   },
 
   Mutation: {
-    async createPost(_, { body, categories, pictures }, context) {
+    async createPost(_, { body, categories, pictures, isAnonymous }, context) {
       const user = checkAuth(context);
       const { id } = user;
       const foundUser = await User.findById(id);
@@ -127,6 +138,7 @@ module.exports = {
         body,
         categories,
         pictures,
+        isAnonymous,
         author: foundUser,
         createdAt: new Date().toISOString(),
       });

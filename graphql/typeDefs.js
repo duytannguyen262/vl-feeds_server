@@ -18,6 +18,7 @@ module.exports = gql`
     categories: [String!]
     pictures: [Picture]
     points: [Point]
+    isAnonymous: Boolean
   }
 
   type Point {
@@ -137,6 +138,7 @@ module.exports = gql`
       body: String!
       categories: [String!]
       pictures: [ImageInputs!]
+      isAnonymous: Boolean
     ): Post!
     deletePost(postId: ID!): String!
     createComment(postId: ID!, body: String!): Post!

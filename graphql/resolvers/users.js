@@ -10,7 +10,7 @@ const { SECRET_KEY } = require("../../config");
 const Post = require("../../models/Post");
 const User = require("../../models/User");
 const checkAuth = require("../../util/checkAuth");
-const { sendEmail } = require("../../util/sendEmail");
+const sendEmail = require("../../util/sendEmail");
 const createConfirmationUrl = require("../../util/createConfirmationUrl");
 
 function generateToken(user, expiresIn) {
@@ -165,7 +165,7 @@ module.exports = {
 
       const result = await newUser.save();
 
-      const token = generateToken(result, "1h");
+      const token = generateToken(newUser, "1h");
 
       await sendEmail(result.email, createConfirmationUrl(token));
 

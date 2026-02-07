@@ -5,6 +5,7 @@ const postSchema = new Schema({
   username: String,
   createdAt: String,
   categories: [String],
+  isAnonymous: Boolean,
   pictures: [
     {
       url: String,

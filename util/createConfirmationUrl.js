@@ -1,3 +1,5 @@
+const clientURL = process.env.CLIENT_URL || "http://localhost:3000";
+
 module.exports = (token) => {
-  return `${process.env.CLIENT_URL}/user/confirm/${token}`;
+  return `${clientURL}/user/confirm/${token}`;
 };
